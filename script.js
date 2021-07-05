@@ -159,9 +159,7 @@ Player = (function () {
                 'piece': players[num].piece,
                 'type': players[num].type
             }; 
-        } else {
-            return null;
-        }      
+        }     
     }
 
     const setName = function (playerNum, proposedName) {
