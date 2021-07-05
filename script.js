@@ -1,4 +1,7 @@
 const Game = (function() {
+    const piece1 = 'X';
+    const piece2 = 'O';
+
     const gameboard = [
         [null, null, null],
         [null, null, null],
@@ -20,20 +23,20 @@ const Game = (function() {
     const playerToMove = function () {
         // Returns next player to take a turn ('X' or 'O')
         // 'X' to start, so 'X' always 0 or 1 moves ahead of X
-        let xTiles = 0;
-        let oTiles = 0;
+        let p1Moves = 0;
+        let p2Moves = 0;
 
         for (let i = 0; i < gameboard.length; i++) {
             for (let j = 0; j < gameboard[i].length; j++) {
-                if (gameboard[i][j] === 'X') {
-                    xTiles++;
-                } else if (gameboard[i][j] === 'O') {
-                    oTiles++;
+                if (gameboard[i][j] === 1) {
+                    p1Moves++;
+                } else if (gameboard[i][j] === 2) {
+                    p2Moves++;
                 }
             }
         }
 
-        return oTiles < xTiles ? 'O' : 'X';
+        return p2Moves < p1Moves ? 2 : 1;
     };
 
     const makeMove = function (i, j) {
@@ -112,39 +115,115 @@ const Game = (function() {
 
 })();
 
-const DisplayControl = (function () {
-    // DOM cache
+const DOM = (function () {
     const message = document.getElementById('message');
-    const resetButton = document.getElementById('resetButton'); 
-    resetButton.onclick = () => {
-        Game.resetGame();
-        renderBoard();
-    }
 
     const board = document.getElementById('board');
+    
     const tiles = [];
-
-    // initialize board
     for (let i = 0; i < Game.currentState().length; i++) {
         for (let j = 0; j < Game.currentState()[i].length; j++) {
-            const newTile = document.createElement('div');
+            newTile = document.createElement('div');
             newTile.className = 'tile';
             newTile.id = `${i},${j}`;
-            newTile.addEventListener('click', selectTile);
             board.appendChild(newTile); 
             tiles.push(newTile);
         }
     }
 
-    renderBoard();
+    const resetButton = document.getElementById('resetButton'); 
+    
+    return {message, board, tiles, resetButton};
+})()
+
+Player = (function () {
+    const players = {
+        // default settings
+        1: {
+            name: 'player 1',
+            piece: 'X',
+            type: 'manual'
+        }, 
+
+        2: {
+            name: 'player 2',
+            piece: 'O',
+            type: 'manual'
+        }, 
+    }; 
+
+    const getPlayerByNum = function (num) {
+        if ([1, 2].includes(num)) {
+            return {
+                'name': players[num].name, 
+                'piece': players[num].piece,
+                'type': players[num].type
+            }; 
+        } else {
+            return null;
+        }      
+    }
+
+    const setName = function (playerNum, proposedName) {
+        const newName = (""+proposedName).trim();
+        // maintain unique names
+        if (newName && !players.some(player => player.name === newName)) {
+            players[playerNum].name = newName;
+        } else {
+            console.log('Invalid name entered.')
+        }
+    }
+
+    const setPiece = function (playerNum, proposedPiece) {
+        const newPiece = (""+proposedPiece).trim();
+        // maintain unique pieces
+        if (newPiece && !players.some(player => player.name === newName)) {
+            players[playerNum].piece = newPiece;
+        } else {
+            console.log('Invalid piece entered.')
+        }
+    }
+
+    const setType = function (playerNum, newType) {
+        if (['manual', 'computer'].includes(newType)) {
+            players[playerNum].type = newType;
+        } else {
+            console.log('Invalid type entered.')
+        }
+        
+    }
+
+    return {getPlayerByNum, setName, setPiece, setType};
+})();
+
+const DisplayControl = (function () {
+    // add tile bindings
+    DOM.tiles.forEach(tile => tile.addEventListener('click', selectTile));
+
+    // add reset binding
+    DOM.resetButton.onclick = () => {
+        Game.resetGame();
+        render();
+    };
+
+    render(); // better to return in object?
+    
+    function render() {
+        updateBoard();
+        updateMessage();
+    } 
     
     function selectTile (event) {
-        const selectedTile = event.target;
-        let i, j;
-        [i, j] = parseCoordinatesFromCSV(selectedTile.id);
-        if (Game.makeMove(i, j)) {
-            renderBoard();
+        // Only play if human
+        if (Player.getPlayerByNum(Game.playerToMove()).type === 'manual') {
+            const selectedTile = event.target;
+            let i, j;
+            [i, j] = parseCoordinatesFromCSV(selectedTile.id);
+            if (Game.makeMove(i, j)) {
+                render();
+            }
         }
+        
     }
     
     function parseCoordinatesFromCSV(tileID) {
@@ -153,37 +232,30 @@ const DisplayControl = (function () {
         return [+i, +j];
     }
 
-    function renderBoard () {
-        for (const tile of tiles) {
+    function updateBoard () {
+        for (const tile of DOM.tiles) {
             let i, j;
             [i, j] = parseCoordinatesFromCSV(tile.id);
-            tile.textContent = Game.currentState()[i][j];
-        }
+            
+            const tileMark = Player.getPlayerByNum(Game.currentState()[i][j]);
 
-        updateMessage();
+            tile.textContent = tileMark ? tileMark.piece : null;
+        }
     }
 
     function updateMessage() {
         if (Game.winner()) {
-            message.textContent = `Player ${Game.winner()} wins!`;
+            const winningPlayer = Player.getPlayerByNum(Game.winner());
+            DOM.message.textContent = `${winningPlayer.name} wins!`;
         } else if (Game.gameOver()) {
-            message.textContent = "It's a tie!";
+            DOM.message.textContent = "It's a tie!";
         } else {
-            message.textContent = `Player ${Game.playerToMove()} to move...`
+            const nextPlayer = Player.getPlayerByNum(Game.playerToMove());
+            DOM.message.textContent = `${nextPlayer.name} to move...`;
         }
     }
-
-    return {
-        renderBoard
-    }
-
 })();
 
-function playerFactory (name, piece, isAI) {
-    return {
-        name, piece, type: isAI ? 'human' : 'computer'
-    };
-}
 
 // pubSub
 // Template borrowed from LearnCode.academy:
