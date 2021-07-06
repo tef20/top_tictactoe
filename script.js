@@ -81,14 +81,14 @@ const Game = (function() {
             if (gameboard[i][0] && 
                 gameboard[i][0] === gameboard[i][1] &&
                 gameboard[i][0] === gameboard[i][2]) {
-                    return gameboard[i][0];
+                    return [gameboard[i][0], [[i, 0], [i, 1], [i, 2]]];
                 }
 
             // Check none empty verticals
             if (gameboard[0][i] && 
                 gameboard[0][i] === gameboard[1][i] &&
                 gameboard[0][i] === gameboard[2][i]) {
-                    return gameboard[0][i];
+                    return [gameboard[0][i], [[0, i], [1, i], [2, i]]];
                 }
 
             // Check none empty diagonals
@@ -96,12 +96,12 @@ const Game = (function() {
                 // Top L-R diagonal
                 if (gameboard[1][1] === gameboard[0][0] &&
                     gameboard[1][1] === gameboard[2][2]) {
-                    return gameboard[1][1];
+                    return [gameboard[0][0], [[0, 0], [1, 1], [2, 2]]];
                 }
                 // Top R-L diagonal
                 if (gameboard[1][1] === gameboard[0][2] && 
                     gameboard[1][1] === gameboard[2][0]) {
-                    return gameboard[1][1];
+                    return [gameboard[0][2], [[0, 2], [1, 1], [2, 0]]];
                 }
             }
         }
@@ -115,38 +115,18 @@ const Game = (function() {
 
 })();
 
-const DOM = (function () {
-    const message = document.getElementById('message');
 
-    const board = document.getElementById('board');
-    
-    const tiles = [];
-    for (let i = 0; i < Game.currentState().length; i++) {
-        for (let j = 0; j < Game.currentState()[i].length; j++) {
-            newTile = document.createElement('div');
-            newTile.className = 'tile';
-            newTile.id = `${i},${j}`;
-            board.appendChild(newTile); 
-            tiles.push(newTile);
-        }
-    }
-
-    const resetButton = document.getElementById('resetButton'); 
-    
-    return {message, board, tiles, resetButton};
-})()
-
-Player = (function () {
+const Player = (function () {
     const players = {
         // default settings
         1: {
-            name: 'player 1',
+            name: 'Player 1',
             piece: 'X',
             type: 'manual'
         }, 
 
         2: {
-            name: 'player 2',
+            name: 'Player 2',
             piece: 'O',
             type: 'manual'
         }, 
@@ -194,6 +174,27 @@ Player = (function () {
     return {getPlayerByNum, setName, setPiece, setType};
 })();
 
+const DOM = (function () {
+    const message = document.getElementById('message');
+
+    const board = document.getElementById('board');
+    
+    const tiles = [];
+    for (let i = 0; i < Game.currentState().length; i++) {
+        for (let j = 0; j < Game.currentState()[i].length; j++) {
+            newTile = document.createElement('div');
+            newTile.className = 'tile';
+            newTile.id = `${i},${j}`;
+            board.appendChild(newTile); 
+            tiles.push(newTile);
+        }
+    }
+
+    const resetButton = document.getElementById('resetButton'); 
+    
+    return {message, board, tiles, resetButton};
+})()
+
 const DisplayControl = (function () {
     // add tile bindings
     DOM.tiles.forEach(tile => tile.addEventListener('click', selectTile));
@@ -201,6 +202,7 @@ const DisplayControl = (function () {
     // add reset binding
     DOM.resetButton.onclick = () => {
         Game.resetGame();
+        DOM.tiles.forEach(tile => tile.style.color = '')
         render();
     };
 
@@ -221,7 +223,6 @@ const DisplayControl = (function () {
                 render();
             }
         }
-        
     }
     
     function parseCoordinatesFromCSV(tileID) {
@@ -239,13 +240,26 @@ const DisplayControl = (function () {
 
             tile.textContent = tileMark ? tileMark.piece : null;
         }
+
+        if (Game.winner()) {
+            highlightWinner();
+        }
     }
 
+    function highlightWinner () {
+        for (coordinates of Game.winner()[1]) {
+            let i, j;
+            [i, j] = coordinates;
+            const winningTile = document.getElementById(`${i},${j}`);
+            winningTile.style.color = '#d2691e';
+        }
+    }    
+            
     function updateMessage() {
         if (Game.winner()) {
-            const winningPlayer = Player.getPlayerByNum(Game.winner());
+            const winningPlayer = Player.getPlayerByNum(Game.winner()[0]);
             DOM.message.textContent = `${winningPlayer.name} wins!`;
-        } else if (Game.gameOver()) {
+        } else if (Game.gameOver()) {11
             DOM.message.textContent = "It's a tie!";
         } else {
             const nextPlayer = Player.getPlayerByNum(Game.playerToMove());
