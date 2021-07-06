@@ -2,7 +2,9 @@ const Game = (function() {
     const piece1 = 'X';
     const piece2 = 'O';
 
-    const gameboard = [
+    const _gameboard = [
+        // tiles of gameboard will be assigned the number 
+        // of the player who chose them
         [null, null, null],
         [null, null, null],
         [null, null, null]
@@ -11,26 +13,26 @@ const Game = (function() {
     function resetGame () {
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
-                gameboard[i][j] = null;
+                _gameboard[i][j] = null;
             }
         }
     }
 
     const currentState = function () {
-        return gameboard;
+        return _gameboard;
     };
 
     const playerToMove = function () {
-        // Returns next player to take a turn ('X' or 'O')
-        // 'X' to start, so 'X' always 0 or 1 moves ahead of X
+        // Returns next player to take a turn (1 or 2)
+        // Player 1 starts, so must always be 0 or 1 moves ahead of 2
         let p1Moves = 0;
         let p2Moves = 0;
 
-        for (let i = 0; i < gameboard.length; i++) {
-            for (let j = 0; j < gameboard[i].length; j++) {
-                if (gameboard[i][j] === 1) {
+        for (let i = 0; i < _gameboard.length; i++) {
+            for (let j = 0; j < _gameboard[i].length; j++) {
+                if (_gameboard[i][j] === 1) {
                     p1Moves++;
-                } else if (gameboard[i][j] === 2) {
+                } else if (_gameboard[i][j] === 2) {
                     p2Moves++;
                 }
             }
@@ -40,11 +42,11 @@ const Game = (function() {
     };
 
     const makeMove = function (i, j) {
-        // i, j correspond to row column on board
+        // i, j correspond to row, column coordinates on board
         // N.B. make a copy if running AI
         if (!winner() && tileFree(i, j)) {
             const currentPlayer = playerToMove();
-            gameboard[i][j] = currentPlayer;
+            _gameboard[i][j] = currentPlayer;
             
             console.log(`Player ${currentPlayer} chose row ${i} column ${j}`);
             return true;
@@ -55,18 +57,17 @@ const Game = (function() {
     };
 
     const tileFree = function (i, j) {
-        return !gameboard[i][j];
+        return !_gameboard[i][j];
     }
 
     const availableMoves = function () {
-        // returns array of form [i, j] 
-        // corresponding to row, column coordinates of gameboard
+        // returns array of objects of form {i, j} 
+        // i, j correspond to row, column coordinates of gameboard
         let available = [];
 
-        for (let i = 0; i < gameboard.length; i++) {
-            for (let j = 0; j < gameboard[i].length; j++) {
-                if (gameboard[i][j] === null) {
-                    // available.push([i, j]);
+        for (let i = 0; i < _gameboard.length; i++) {
+            for (let j = 0; j < _gameboard[i].length; j++) {
+                if (_gameboard[i][j] === null) {
                     available.push({i, j});
                 }
             }
@@ -76,32 +77,34 @@ const Game = (function() {
     };
 
     const winner = function () {
+        // checks for 3 consecutive tiles of same marking
+        // returns array of form [winner, [...coordinates]] if winner exists
         for (let i = 0; i < 3; i++) {
             // Check none empty horizontals
-            if (gameboard[i][0] && 
-                gameboard[i][0] === gameboard[i][1] &&
-                gameboard[i][0] === gameboard[i][2]) {
-                    return [gameboard[i][0], [[i, 0], [i, 1], [i, 2]]];
+            if (_gameboard[i][0] && 
+                _gameboard[i][0] === _gameboard[i][1] &&
+                _gameboard[i][0] === _gameboard[i][2]) {
+                    return [_gameboard[i][0], [[i, 0], [i, 1], [i, 2]]];
                 }
 
             // Check none empty verticals
-            if (gameboard[0][i] && 
-                gameboard[0][i] === gameboard[1][i] &&
-                gameboard[0][i] === gameboard[2][i]) {
-                    return [gameboard[0][i], [[0, i], [1, i], [2, i]]];
+            if (_gameboard[0][i] && 
+                _gameboard[0][i] === _gameboard[1][i] &&
+                _gameboard[0][i] === _gameboard[2][i]) {
+                    return [_gameboard[0][i], [[0, i], [1, i], [2, i]]];
                 }
 
             // Check none empty diagonals
-            if (gameboard[1][1]) {
+            if (_gameboard[1][1]) {
                 // Top L-R diagonal
-                if (gameboard[1][1] === gameboard[0][0] &&
-                    gameboard[1][1] === gameboard[2][2]) {
-                    return [gameboard[0][0], [[0, 0], [1, 1], [2, 2]]];
+                if (_gameboard[1][1] === _gameboard[0][0] &&
+                    _gameboard[1][1] === _gameboard[2][2]) {
+                    return [_gameboard[0][0], [[0, 0], [1, 1], [2, 2]]];
                 }
                 // Top R-L diagonal
-                if (gameboard[1][1] === gameboard[0][2] && 
-                    gameboard[1][1] === gameboard[2][0]) {
-                    return [gameboard[0][2], [[0, 2], [1, 1], [2, 0]]];
+                if (_gameboard[1][1] === _gameboard[0][2] && 
+                    _gameboard[1][1] === _gameboard[2][0]) {
+                    return [_gameboard[0][2], [[0, 2], [1, 1], [2, 0]]];
                 }
             }
         }
@@ -117,7 +120,10 @@ const Game = (function() {
 
 
 const Player = (function () {
-    const players = {
+    // capacity for future features:
+    //  - change player name
+    //  - allow for ai player
+    const _players = {
         // default settings
         1: {
             name: 'Player 1',
@@ -135,9 +141,9 @@ const Player = (function () {
     const getPlayerByNum = function (num) {
         if ([1, 2].includes(num)) {
             return {
-                'name': players[num].name, 
-                'piece': players[num].piece,
-                'type': players[num].type
+                'name': _players[num].name, 
+                'piece': _players[num].piece,
+                'type': _players[num].type
             }; 
         }     
     }
@@ -145,8 +151,8 @@ const Player = (function () {
     const setName = function (playerNum, proposedName) {
         const newName = (""+proposedName).trim();
         // maintain unique names
-        if (newName && !players.some(player => player.name === newName)) {
-            players[playerNum].name = newName;
+        if (newName && !_players.some(player => player.name === newName)) {
+            _players[playerNum].name = newName;
         } else {
             console.log('Invalid name entered.')
         }
@@ -155,8 +161,8 @@ const Player = (function () {
     const setPiece = function (playerNum, proposedPiece) {
         const newPiece = (""+proposedPiece).trim();
         // maintain unique pieces
-        if (newPiece && !players.some(player => player.name === newName)) {
-            players[playerNum].piece = newPiece;
+        if (newPiece && !_players.some(player => player.name === newName)) {
+            _players[playerNum].piece = newPiece;
         } else {
             console.log('Invalid piece entered.')
         }
@@ -164,7 +170,7 @@ const Player = (function () {
 
     const setType = function (playerNum, newType) {
         if (['manual', 'computer'].includes(newType)) {
-            players[playerNum].type = newType;
+            _players[playerNum].type = newType;
         } else {
             console.log('Invalid type entered.')
         }
@@ -175,6 +181,8 @@ const Player = (function () {
 })();
 
 const DOM = (function () {
+    // assign DOM elements from page
+    // generate elements for board
     const message = document.getElementById('message');
 
     const board = document.getElementById('board');
@@ -196,12 +204,17 @@ const DOM = (function () {
 })()
 
 const DisplayControl = (function () {
+    // Manage interactions between user interface and game logic
+    // Future features: 
+    //  - Pub Sub pattern to reduce dependencies
+
     // add tile bindings
     DOM.tiles.forEach(tile => tile.addEventListener('click', selectTile));
 
     // add reset binding
     DOM.resetButton.onclick = () => {
         Game.resetGame();
+        // remove any highlighting from previous round
         DOM.tiles.forEach(tile => tile.style.color = '')
         render();
     };
@@ -226,12 +239,14 @@ const DisplayControl = (function () {
     }
     
     function parseCoordinatesFromCSV(tileID) {
+        // take comma separated values from tileID and return coordinates as nums
         let i, j;
         [i, j] = tileID.split(',');
         return [+i, +j];
     }
 
     function updateBoard () {
+        // loop tiles in DOM, adjust text to match gameboard
         for (const tile of DOM.tiles) {
             let i, j;
             [i, j] = parseCoordinatesFromCSV(tile.id);
@@ -247,6 +262,7 @@ const DisplayControl = (function () {
     }
 
     function highlightWinner () {
+        // highlight winning 3-in-a-row marks
         for (coordinates of Game.winner()[1]) {
             let i, j;
             [i, j] = coordinates;
@@ -259,7 +275,7 @@ const DisplayControl = (function () {
         if (Game.winner()) {
             const winningPlayer = Player.getPlayerByNum(Game.winner()[0]);
             DOM.message.textContent = `${winningPlayer.name} wins!`;
-        } else if (Game.gameOver()) {11
+        } else if (Game.gameOver()) {
             DOM.message.textContent = "It's a tie!";
         } else {
             const nextPlayer = Player.getPlayerByNum(Game.playerToMove());
